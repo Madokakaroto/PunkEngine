@@ -357,12 +357,27 @@ namespace punk
 
         size_type find_first() const noexcept
         {
-            return size_type{ 0 };
+            return find_from(0);
         }
 
         size_type find_next(size_type pos) const noexcept
         {
-            return size_type{ 0 };
+            const size_type sz = size();
+            if (pos >= (sz-1) || sz == 0)
+            {
+                return npos;
+            }
+
+            ++pos;
+            const size_type blk = block_index(pos);
+            const block_width_type ind = bit_index(pos);
+
+            // shift bits upto one immediately after current
+            const Block fore = storage_[blk] >> ind;
+
+            return fore
+                ? pos + static_cast<size_type>(std::countr_zero(fore))
+                : find_from(blk + 1);
         }
 
         block_type* data() noexcept
@@ -726,6 +741,25 @@ namespace punk
                 result |= static_cast<UnsignedIntegral>(storage_.back()) << offset;
             }
             return result;
+        }
+
+        size_type find_from(size_t pos) const
+        {
+            size_type i = pos;
+
+            // skip null blocks
+             while (i < block_size() && storage_[i] == 0)
+             {
+                 ++i;
+             }
+                
+
+            if (i >= block_size())
+            {
+                return npos; // not found
+            }
+
+            return i * bits_per_block + static_cast<size_type>(std::countr_zero(storage_[i]));
         }
 
     public: // friends
