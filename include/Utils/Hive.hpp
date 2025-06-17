@@ -38,7 +38,7 @@ namespace punk
             : storage_(element_count)
             , storage_bits_(element_count, false)
             , first_available_index_(0)
-            , available_element_count_(element_count)
+            , available_element_count_(static_cast<uint32_t>(element_count))
             , first_global_index_(first_global_index)
         {
             init(element_count);
@@ -96,8 +96,8 @@ namespace punk
         }
 
     public:
-        template <typename ... Args> requires(std::constructible_from<value_type, Args&&...>)
-        auto construct(Args&& ... args) -> std::pair<pointer*, size_t>
+        template <typename ... Args> //requires(std::constructible_from<value_type, Args&&...>)
+        auto construct(Args&& ... args) -> std::pair<pointer, size_t>
         {
             // branch: when hive group has no available space to construct a new element
             if(!has_available_space())
@@ -240,7 +240,7 @@ namespace punk
         using hive_group_ptr = std::unique_ptr<hive_group_type>;
         using hive_group_ptr_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hive_group_ptr>;
         using hive_group_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hive_group_type>;
-        std::vector<hive_group_ptr, hive_group_allocator> hive_groups_;
+        std::vector<hive_group_ptr, hive_group_ptr_allocator> hive_groups_;
         size_t const initial_capacity = 64;
 
     public:
@@ -262,7 +262,7 @@ namespace punk
         auto construct(Args&& ... args) -> std::pair<value_type*, size_t>
         {
             // find or create a hive_group iterator to construct our new element
-            auto itr = std::ranges::find_first_of(hive_groups_,
+            auto itr = std::ranges::find_if(hive_groups_,
                 [](auto const& hive_group_ptr)
                 {
                     return hive_group_ptr->has_available_space();
@@ -272,7 +272,7 @@ namespace punk
                 itr = append_new_group();
             }
 
-            auto result = itr->construct(std::forward<Args>(args)...);
+            auto result = (*itr)->construct(std::forward<Args>(args)...);
             return result;
         }
 
@@ -342,7 +342,7 @@ namespace punk
             auto const first_global_index = hive_groups_.back()->get_first_global_index() + next_group_capacity;
             // create new group
             auto new_hive_group = create_new_group(next_group_capacity, first_global_index);
-            hive_groups_.insert(hive_groups_.end(), std::move(new_hive_group));
+            return hive_groups_.insert(hive_groups_.end(), std::move(new_hive_group));
         }
 
         hive_group_ptr create_new_group(size_t capacity, size_t first_global_index)

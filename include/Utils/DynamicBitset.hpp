@@ -76,7 +76,7 @@ namespace punk
 
         static constexpr size_type calc_num_blocks(size_type num_bits) noexcept
         {
-            auto [q, r] = ldiv(num_bits, bits_per_block);
+            auto [q, r] = ldiv(static_cast<long>(num_bits), bits_per_block);
             auto const yet_another_block = q == 0 || r != 0;
             return yet_another_block ? q + 1 : q;
         }
