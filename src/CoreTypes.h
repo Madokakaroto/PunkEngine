@@ -6,6 +6,7 @@ namespace punk
     {
         static constexpr size_t chunke_size = 16 * 1024;
 
+        uint32_t                    archetype_hash;
         uint32_t                    element_count;
         uint32_t                    chunk_number;
     };

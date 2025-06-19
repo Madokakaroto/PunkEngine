@@ -76,12 +76,12 @@ namespace punk
 
         bool memory_in_range(const_pointer ptr) const noexcept
         {
-            return ptr >= get_ptr(0) && ptr <= get_ptr(storage_.size() - 1);
+            return ptr >= get_ptr_as<value_type>(0) && ptr <= get_ptr_as<value_type>(storage_.size() - 1);
         }
 
         bool memory_aligned(const_pointer ptr) const noexcept
         {
-            std::ptrdiff_t distance = get_ptr(0) - ptr;
+            std::ptrdiff_t distance = get_ptr_as<value_type>(0) - ptr;
             return distance % value_size == 0;
         }
 
@@ -141,8 +141,7 @@ namespace punk
             }
 
             // update new state
-            auto* space_index_ptr = reinterpret_cast<element_storage*>(ptr);
-            auto const space_index = std::distance(get_ptr_as<element_storage*>(0), space_index_ptr);
+            auto const space_index = static_cast<uint32_t>(std::distance(get_ptr_as<value_type>(0), ptr));
             assert(space_index < capacity());
 
             // check double free
@@ -192,7 +191,7 @@ namespace punk
 
         uint8_t const* get_ptr(size_t index) const
         {
-            return &storage_[index].bytes_.data();
+            return storage_[index].bytes_.data();
         }
 
         template <typename U>
@@ -300,8 +299,8 @@ namespace punk
                 return nullptr;
             }
 
-            auto const index_in_group = global_index - itr->get_first_global_index();
-            return itr->get(index_in_group);
+            auto const index_in_group = global_index - (*itr)->get_first_global_index();
+            return (*itr)->get(index_in_group);
         }
 
         pointer get(size_t global_index)
@@ -364,9 +363,9 @@ namespace punk
             }
             auto itr = hive_groups_.cbegin() + index_of_group;
             assert(*itr);
-            assert(global_index >= itr->get_first_global_index());
-            auto const index_in_group = global_index - itr->get_first_global_index();
-            assert(index_in_group < itr->capacity());
+            assert(global_index >= (*itr)->get_first_global_index());
+            auto const index_in_group = global_index - (*itr)->get_first_global_index();
+            assert(index_in_group < (*itr)->capacity());
             return itr;
         }
 
