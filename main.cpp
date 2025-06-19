@@ -1,10 +1,9 @@
-#include "ECS.h"
 #include "async_simple/coro/Lazy.h"
 #include "async_simple/coro/SyncAwait.h"
-#include "src/CoreTypes.h"
+#include "src/ECS/CoreTypes.h"
 
-#include "Utils/StaticReflection.hpp"
-#include "Types/RTTI.h"
+#include "Base/Reflection/StaticReflection.h"
+#include "ECS/ECS.h"
 
 class foo {};
 

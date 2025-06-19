@@ -1,7 +1,7 @@
 #pragma once
 
 #include <compare>
-#include "Types/Handle.hpp"
+#include "ECS/Detail/Handle.h"
 
 namespace punk
 {

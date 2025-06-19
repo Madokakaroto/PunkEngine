@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Types/Entity.hpp"
-#include "Types/ErrorCode.hpp"
+#include "ECS/Detail/Entity.h"
+#include "ECS/Detail/ErrorCode.h"
 
 namespace punk
 {

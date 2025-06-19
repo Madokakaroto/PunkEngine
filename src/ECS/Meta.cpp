@@ -1,6 +1,6 @@
-#include "Types/RTTI.h"
+#include "ECS/ECS.h"
 #include "CoreTypes.h"
-#include "Utils/Hash.hpp"
+#include "Base/Utils/Hash.h"
 
 namespace punk
 {

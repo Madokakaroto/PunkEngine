@@ -1,7 +1,8 @@
-#include "Types/RTTI.h"
-#include "async_simple/coro/SpinLock.h"
+#include "ECS/ECS.h"
 #include "CoreTypes.h"
-#include "Utils/Hash.hpp"
+#include "Base/Utils/Hash.h"
+#include "Base/Async/Async.h"
+#include "Base/Async/AsyncStaticFor.h"
 
 #ifndef PUNK_ALLOCA
 #define PUNK_ALLOCA(type, count) static_cast<std::add_pointer_t<type>>(alloca(sizeof(type) * (count)))

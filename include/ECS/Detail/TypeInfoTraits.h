@@ -1,11 +1,11 @@
 #pragma once
 
 #include <format>
-#include "Traits/TypeTraitsExt.hpp"
-#include "Utils/TypeDemangle.hpp"
-#include "Utils/Hash.hpp"
-#include "Types/Meta.h"
-#include "Utils/StaticReflection.hpp"
+#include "Base/Reflection/TypeTraitsExt.h"
+#include "Base/Reflection/TypeDemangle.h"
+#include "Base/Utils/Hash.h"
+#include "ECS/Detail/Meta.h"
+#include "Base/Reflection/StaticReflection.h"
 #include "boost/pfr/detail/offset_based_getter.hpp"
 
 namespace punk

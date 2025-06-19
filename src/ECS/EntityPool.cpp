@@ -1,5 +1,5 @@
-#include "Types/EntityPool.h"
-#include "Utils/Hive.hpp"
+#include "ECS/ECS.h"
+#include "Base/Containers/Hive.h"
 
 namespace punk
 {

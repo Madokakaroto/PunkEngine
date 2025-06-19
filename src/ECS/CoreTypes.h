@@ -1,5 +1,8 @@
 #pragma once
 
+#include "ECS/Detail/Meta.h"
+#include "ECS/Detail/Handle.h"
+
 namespace punk
 {
     struct chunk_t

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Types/Forward.hpp"
-#include "Utils/DynamicBitset.hpp"
+#include "Base/Types.h"
+#include "Base/Containers/DynamicBitset.h"
 
 namespace punk
 {

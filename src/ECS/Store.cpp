@@ -1,7 +1,6 @@
-#include "Types/Store.h"
-#include "Types/RTTI.h"
+#include "ECS/ECS.h"
 #include "CoreTypes.h"
-#include "Utils/Hive.hpp"
+#include "Base/Containers/Hive.h"
 
 namespace punk
 {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Types/Forward.hpp"
-#include "Types/Handle.hpp"
+#include "Base/Types.h"
+#include "ECS/Detail/Handle.h"
 
 namespace punk
 {
