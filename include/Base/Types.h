@@ -17,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <format>
+#include <memory>
 #include <memory_resource>
 #include <ranges>
 #include <bit>

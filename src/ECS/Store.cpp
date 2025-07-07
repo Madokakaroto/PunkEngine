@@ -48,9 +48,9 @@ namespace punk
         archetype_instance_manager(archetype_instance_manager&&) = default;
         archetype_instance_manager& operator=(archetype_instance_manager&&) = default;
 
-        uint32_t attach_archetype(archetype_ptr archetype)
+        uint32_t attach_archetype(archetype_ptr const& archetype)
         {
-            if(archetype)
+            if(!archetype)
             {
                 return 0;
             }

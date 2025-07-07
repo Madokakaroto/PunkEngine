@@ -2,6 +2,7 @@
 
 #include "Base/Types.h"
 #include "Base/Containers/DynamicBitset.h"
+#include <type_traits>
 
 namespace punk
 {
@@ -115,7 +116,10 @@ namespace punk
             assert(next_available_index < capacity());
 
             // placement new a new element
-            new (construct_ptr) value_type{ std::forward<Args>(args)... };
+            if(!std::is_trivially_constructible_v<value_type, Args&&...>)
+            {
+                new (construct_ptr) value_type{ std::forward<Args>(args)... };
+            }
 
             // mark element allocated bits
             mark_allocated(index);
