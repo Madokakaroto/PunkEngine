@@ -4,6 +4,10 @@
 #include "Base/Containers/DynamicBitset.h"
 #include <type_traits>
 
+#ifndef PUNK_HIVE_GROUP_CAPACITY
+#define PUNK_HIVE_GROUP_CAPACITY 128
+#endif
+
 namespace punk
 {
     template <typename T, typename Alloc = std::allocator<T>>
@@ -18,20 +22,23 @@ namespace punk
         using const_pointer = std::add_pointer_t<const_value>;
         static constexpr size_t value_size = sizeof(value_type);
         static constexpr size_t value_align = alignof(value_type);
-        struct element_storage
+        union element_storage
         {
             alignas(T) std::array<uint8_t, value_size> bytes_;
+            struct
+            {
+                uint16_t next_available_index;
+                uint16_t prev_available_index;
+            };
         };
         using allocator_type = typename std::allocator_traits<Alloc>::template rebind_alloc<element_storage>;
         using storage_type = std::vector<element_storage, allocator_type>;
-        static_assert(value_size >= sizeof(uint32_t));
-        static_assert(value_size == sizeof(element_storage));
 
     private:
         storage_type        storage_;
         dynamic_bitset<>    storage_bits_;
-        uint32_t            first_available_index_;
-        uint32_t            available_element_count_;
+        size_t              first_available_index_;
+        size_t              available_element_count_;
         size_t const        first_global_index_;
 
     public:
@@ -39,7 +46,7 @@ namespace punk
             : storage_(element_count)
             , storage_bits_(element_count, false)
             , first_available_index_(0)
-            , available_element_count_(static_cast<uint32_t>(element_count))
+            , available_element_count_(element_count)
             , first_global_index_(first_global_index)
         {
             init(element_count);
@@ -103,32 +110,42 @@ namespace punk
             // branch: when hive group has no available space to construct a new element
             if(!has_available_space())
             {
-                return { nullptr, capacity() };
+                return { nullptr, invalid_index_value() };
             }
 
-            // query an available space
             auto const index = first_available_index_;
-            assert(index < capacity());
-            auto* construct_ptr = get_ptr(index);
+            auto value_ptr = construct_at_impl(first_available_index_, std::forward<Args>(args)...);
+            return { value_ptr, index };
+        }
 
-            // record the next available space
-            auto const next_available_index = *reinterpret_cast<uint32_t*>(construct_ptr);
-            assert(next_available_index < capacity());
-
-            // placement new a new element
-            if(!std::is_trivially_constructible_v<value_type, Args&&...>)
+        template <typename ... Args>
+        auto construct_at(size_t index, bool overwrite_when_constructed, Args&& ... args) -> std::pair<pointer, bool>
+        {
+            // we are constructing on a constructed index
+            if(test_allocated(index))
             {
-                new (construct_ptr) value_type{ std::forward<Args>(args)... };
+                auto* value_ptr = get(index);
+                if(!overwrite_when_constructed)
+                {
+                    return { value_ptr , false };
+                }
+
+                /// overwrite a new object
+                // call destructor
+                if constexpr(!std::is_trivially_destructible_v<value_type>)
+                {
+                    value_ptr->~value_type();
+                }
+                // call constructor
+                if(!std::is_trivially_constructible_v<value_type, Args&&...>)
+                {
+                    new (value_ptr) value_type{ std::forward<Args>(args)... };
+                }
+                return { value_ptr, true };
             }
 
-            // mark element allocated bits
-            mark_allocated(index);
-
-            // update hive group state
-            first_available_index_ = next_available_index;
-            available_element_count_--;
-
-            return { reinterpret_cast<pointer>(construct_ptr), index + get_first_global_index() };
+            auto value_ptr = construct_at_impl(index, std::forward<Args>(args)...);
+            return { value_ptr, true };
         }
 
         void destruct(pointer ptr) noexcept
@@ -145,7 +162,7 @@ namespace punk
             }
 
             // update new state
-            auto const space_index = static_cast<uint32_t>(std::distance(get_ptr_as<value_type>(0), ptr));
+            auto const space_index = static_cast<size_t>(std::distance(get_ptr_as<value_type>(0), ptr));
             assert(space_index < capacity());
 
             // check double free
@@ -155,14 +172,15 @@ namespace punk
             }
 
             // call destructor
-            if constexpr(std::negation_v<std::is_trivially_destructible<value_type>>)
+            if constexpr(!std::is_trivially_destructible_v<value_type>)
             {
                 ptr->~value_type();
             }
 
             // update hive group state
+            set_next_index(space_index, static_cast<uint16_t>(first_available_index_));
+            set_prev_index(space_index, invalid_short_index_value());
             mark_destroyed(space_index);
-            *reinterpret_cast<uint32_t*>(ptr) = first_available_index_;
             first_available_index_ = space_index;
             available_element_count_++;
             assert(available_element_count_ < capacity());
@@ -181,11 +199,13 @@ namespace punk
     private:
         void init(size_t element_count)
         {
-            for(uint32_t loop = 0; loop < element_count; ++loop)
+            for(uint16_t loop = 0; loop < element_count; ++loop)
             {
-                auto* uint32_ptr = get_ptr_as<uint32_t>(loop);
-                *uint32_ptr = loop + 1;
+                storage_[loop].next_available_index = loop + 1;
+                storage_[loop].prev_available_index = loop - 1;
             }
+            storage_[0].prev_available_index = invalid_short_index_value();
+            storage_[element_count - 1].next_available_index = invalid_short_index_value();
         }
 
         uint8_t* get_ptr(size_t index)
@@ -198,16 +218,36 @@ namespace punk
             return storage_[index].bytes_.data();
         }
 
+        uint16_t get_next_index(size_t index) const
+        {
+            return storage_[index].next_available_index;
+        }
+
+        uint16_t get_prev_index(size_t index) const
+        {
+            return storage_[index].prev_available_index;
+        }
+
+        void set_next_index(size_t index, uint16_t next_index)
+        {
+            storage_[index].next_available_index = next_index;
+        }
+
+        void set_prev_index(size_t index, uint16_t prev_index)
+        {
+            storage_[index].prev_available_index = prev_index;
+        }
+
         template <typename U>
         U* get_ptr_as(size_t index)
         {
-            return reinterpret_cast<U*>(get_ptr(index));
+            return std::launder(reinterpret_cast<U*>(get_ptr(index)));
         }
 
         template <typename U>
         U const* get_ptr_as(size_t index) const
         {
-            return reinterpret_cast<U const*>(get_ptr(index));
+            return std::launder(reinterpret_cast<U const*>(get_ptr(index)));
         }
 
         bool test_allocated(size_t pos) const
@@ -227,6 +267,44 @@ namespace punk
             assert(pos < capacity());
             storage_bits_.reset(pos);
         }
+
+        template <typename ... Args>
+        pointer construct_at_impl(size_t index, Args&& ... args)
+        {
+            assert(!test_allocated(index));
+
+            // cache next & prev available index
+            auto const next_available_index = get_next_index(index);
+            auto const prev_available_index = get_prev_index(index);
+
+            // call constructor
+            pointer value_ptr = nullptr;
+            if(!std::is_trivially_constructible_v<value_type, Args&&...>)
+            {
+                auto* storage_ptr = get_ptr(index);
+                value_ptr = new (storage_ptr) value_type{ std::forward<Args>(args)... };
+            }
+
+            // update linked list
+            if(next_available_index != invalid_index_value())
+            {
+                set_prev_index(next_available_index, prev_available_index);
+            }
+            if(prev_available_index != invalid_index_value())
+            {
+                set_next_index(prev_available_index, next_available_index);
+            }
+
+            // update allocate states
+            if(index == first_available_index_)
+            {
+                first_available_index_ = next_available_index;
+            }
+            available_element_count_--;
+            mark_allocated(index);
+
+            return value_ptr;
+        }
     };
 
     template <typename T, typename Alloc = std::allocator<T>>
@@ -244,7 +322,10 @@ namespace punk
         using hive_group_ptr_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hive_group_ptr>;
         using hive_group_allocator = typename std::allocator_traits<allocator_type>::template rebind_alloc<hive_group_type>;
         std::vector<hive_group_ptr, hive_group_ptr_allocator> hive_groups_;
-        size_t const initial_capacity = 64;
+        static constexpr size_t hive_group_capacity = PUNK_HIVE_GROUP_CAPACITY;
+        static constexpr size_t hive_group_memory_size = hive_group_capacity * sizeof(value_type);
+        
+        static_assert(hive_group_capacity < (std::numeric_limits<uint16_t>::max)());
 
     public:
         hive()
@@ -276,7 +357,27 @@ namespace punk
             }
 
             auto result = (*itr)->construct(std::forward<Args>(args)...);
+            result.second += (*itr)->get_first_global_index();
             return result;
+        }
+
+        template <typename ... Args> requires(std::constructible_from<value_type, Args&&...>)
+        auto construct_at(size_t index, bool overwrite_when_constructed, Args&& ... args) -> std::pair<value_type*, bool>
+        {
+            auto const index_of_group = index / hive_group_capacity;
+            auto const index_in_group = index % hive_group_capacity;
+
+            if(index_of_group >= hive_groups_.size())
+            {
+                auto const group_count = index_of_group - hive_groups_.size() + 1;
+                for(auto loop = 0; loop < group_count; ++loop)
+                {
+                    append_new_group();
+                }
+            }
+
+            assert(!hive_groups_.empty());
+            return hive_groups_[index_of_group].construct_at(index_in_group, overwrite_when_constructed, std::forward<Args>(args)...);
         }
 
         void destruct(const_pointer ptr) noexcept
@@ -292,7 +393,22 @@ namespace punk
             }
 
             itr->destruct(ptr);
-            // TODO ... remove empty hive group
+        }
+
+        void destruct(size_t index) noexcept
+        {
+            auto const index_of_group = index / hive_group_capacity;
+            auto const index_in_group = index % hive_group_capacity;
+            
+            if(index_of_group >= hive_groups_.size())
+            {
+                return;
+            }
+            auto const& hive_group_ptr = hive_groups_[index_of_group];
+            assert(hive_group_ptr);
+            assert(index >= hive_group_ptr->get_first_global_index());
+            assert(index_in_group < hive_group_ptr->capacity());
+            hive_group_ptr->destruct(index_in_group);
         }
 
         const_pointer get(size_t global_index) const
@@ -312,39 +428,19 @@ namespace punk
             return const_cast<pointer>(const_cast<hive const*>(this)->get(global_index));
         }
 
-        void destruct(size_t index) noexcept
-        {
-            auto const hive_group_q = index / initial_capacity;
-            auto const hive_group_r = index % initial_capacity;
-
-            auto const index_of_group = static_cast<size_t>(std::bit_width(hive_group_q));
-            if(index_of_group >= hive_groups_.size())
-            {
-                return;
-            }
-            auto const& hive_group_ptr = hive_groups_[index_of_group];
-            assert(hive_group_ptr);
-            assert(index >= hive_group_ptr->get_first_global_index());
-            auto const index_in_group = index - hive_group_ptr->get_first_global_index();
-            assert(index_in_group < hive_group_ptr->capacity());
-            hive_group_ptr->destruct(index_in_group);
-        }
-
     private:
         void create_initial_group()
         {
-            auto initial_group = create_new_group(initial_capacity, 0);
+            auto initial_group = create_new_group(hive_group_capacity, 0);
             hive_groups_.push_back(std::move(initial_group));
         }
 
         auto append_new_group()
         {
             assert(!hive_groups_.empty());
-            // double capacity
-            auto const next_group_capacity = hive_groups_.back()->capacity() * 2;
-            auto const first_global_index = hive_groups_.back()->get_first_global_index() + next_group_capacity;
+            auto const first_global_index = hive_groups_.back()->get_first_global_index() + hive_group_capacity;
             // create new group
-            auto new_hive_group = create_new_group(next_group_capacity, first_global_index);
+            auto new_hive_group = create_new_group(hive_group_capacity, first_global_index);
             return hive_groups_.insert(hive_groups_.end(), std::move(new_hive_group));
         }
 
@@ -358,9 +454,8 @@ namespace punk
 
         auto get_hive_group(size_t global_index) const
         {
-            auto const hive_group_q = global_index / initial_capacity;
-            auto const hive_group_r = global_index % initial_capacity;
-            auto const index_of_group = static_cast<size_t>(std::bit_width(hive_group_q)) - 1;
+            auto const index_of_group = global_index / hive_group_capacity;
+            auto const index_in_group = global_index % hive_group_capacity;
             if(index_of_group >= hive_groups_.size())
             {
                 return hive_groups_.cend();
@@ -368,7 +463,6 @@ namespace punk
             auto itr = hive_groups_.cbegin() + index_of_group;
             assert(*itr);
             assert(global_index >= (*itr)->get_first_global_index());
-            auto const index_in_group = global_index - (*itr)->get_first_global_index();
             assert(index_in_group < (*itr)->capacity());
             return itr;
         }

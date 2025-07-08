@@ -4,6 +4,12 @@
 
 namespace punk
 {
+    struct entity_version_t
+    {
+        uint32_t padded;
+        uint32_t version;
+    };
+
     class entity_pool_impl_t : public entity_pool_t
     {
     public:
@@ -11,8 +17,8 @@ namespace punk
         {
             auto [version_ptr, index] = entities_version_.construct();
             assert(version_ptr);
-            auto const version = (*version_ptr)++;
-            return entity_t::compose(static_cast<uint32_t>(index), tag, version);
+            auto const version = version_ptr->version++;
+            return entity_t::compose(entity_handle_t{ static_cast<uint32_t>(index) }, tag, version);
         }
 
         virtual void deallocate_entity(entity_t entity) override
@@ -21,7 +27,7 @@ namespace punk
             auto const version = entity.get_version();
 
             auto const version_ptr = entities_version_.get(handle.get_value());
-            if(version_ptr && *version_ptr == version)
+            if(version_ptr && version_ptr->version == version)
             {
                 entities_version_.destruct(handle.get_value());
             }
@@ -33,7 +39,7 @@ namespace punk
             auto const version = entity.get_version();
 
             auto const version_ptr = entities_version_.get(handle.get_value());
-            return version_ptr && *version_ptr == version;
+            return version_ptr && version_ptr->version == version;
         }
 
         virtual entity_t restore_entity(entity_handle_t handle) override
@@ -43,11 +49,11 @@ namespace punk
             {
                 return entity_t::invalid_entity();
             }
-            return entity_t::compose(handle.get_value(), 0, *version_ptr);
+            return entity_t::compose(handle, 0, version_ptr->version);
         }
-        
+
     private:
-        hive<uint32_t> entities_version_;
+        hive<entity_version_t> entities_version_;
     };
 
     entity_pool_t* entity_pool_t::create_entity_pool()
