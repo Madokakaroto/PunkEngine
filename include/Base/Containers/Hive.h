@@ -377,7 +377,7 @@ namespace punk
             }
 
             assert(!hive_groups_.empty());
-            return hive_groups_[index_of_group].construct_at(index_in_group, overwrite_when_constructed, std::forward<Args>(args)...);
+            return hive_groups_[index_of_group]->construct_at(index_in_group, overwrite_when_constructed, std::forward<Args>(args)...);
         }
 
         void destruct(const_pointer ptr) noexcept

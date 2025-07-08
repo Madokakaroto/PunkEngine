@@ -44,11 +44,7 @@ namespace punk
 
         virtual entity_t restore_entity(entity_handle_t handle) override
         {
-            auto const version_ptr = entities_version_.get(handle.get_value());
-            if(!version_ptr)
-            {
-                return entity_t::invalid_entity();
-            }
+            auto [version_ptr, _] = entities_version_.construct_at(handle.get_value(), false);
             return entity_t::compose(handle, 0, version_ptr->version);
         }
 
