@@ -35,8 +35,8 @@ file(GLOB_RECURSE PRIVATE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h 
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-
 set(PUNK_MAIN "main.cpp")
+set(PUNK_ENGINE_ALLLIB_SOURCES ${PRIVATE_FILES} ${PUBLIC_INCLUDE_FILES})
 
 assign_source_group(${PRIVATE_FILES})
 assign_source_group(${PUBLIC_INCLUDE_FILES})
@@ -44,13 +44,16 @@ assign_source_group(${PUNK_MAIN})
 
 set(DEPENDENCIES_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dependencies)
 
-include_directories(
+add_executable(PunkEngine ${PRIVATE_FILES} ${PUBLIC_INCLUDE_FILES} ${PUNK_MAIN})
+target_include_directories(PunkEngine PRIVATE
 	${DEPENDENCIES_DIRECTORY}/boost/pfr/include
     ${DEPENDENCIES_DIRECTORY}/boost/preprocessor/include
     ${DEPENDENCIES_DIRECTORY}/asio/asio/include
     ${DEPENDENCIES_DIRECTORY}/async_simple
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+target_link_libraries(PunkEngine -lc++ -lstdc++)
 
-add_executable(PunkEngine ${PRIVATE_FILES} ${PUBLIC_INCLUDE_FILES} ${PUNK_MAIN})
-link_libraries(PunkEngine -lc++ -lstdc++)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+add_subdirectory(dependencies/googletest)
+add_subdirectory(tests)

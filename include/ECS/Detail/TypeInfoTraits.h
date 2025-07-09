@@ -136,11 +136,6 @@ namespace punk
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(sint32_t, sint32);
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(float, float);
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(double, double);
-    //PUNK_IMPLEMENT_PRIMATIVE_TYPE(string, std::string);
-    //PUNK_IMPLEMENT_PRIMATIVE_TYPE(wstring, std::wstring);
-    //PUNK_IMPLEMENT_PRIMATIVE_TYPE(u8string, std::u8string);
-    //PUNK_IMPLEMENT_PRIMATIVE_TYPE(u16string, std::u16string);
-    //PUNK_IMPLEMENT_PRIMATIVE_TYPE(u32string, std::u32string);
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(std::string, std::string);
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(std::wstring, std::wstring);
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(std::u8string, std::u8string);
@@ -252,7 +247,7 @@ namespace punk
         }
     };
 
-    template <typename T> requires auto_reflectable<T> && !reflected<T>
+    template <typename T> requires(auto_reflectable<T> && !reflected<T>)
     struct type_info_traits<T> : primative_type_info_traits<T>
     {
         using type = typename primative_type_info_traits<T>::type;

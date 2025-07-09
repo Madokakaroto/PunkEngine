@@ -16,5 +16,6 @@ namespace punk
         store& operator=(store&&) = delete;
 
     public:
+
     };
 }
