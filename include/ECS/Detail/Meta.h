@@ -14,14 +14,14 @@ namespace punk
         struct
         {
             // value1 is the hash value of type name
-            uint32_t value1;
+            uint32_t value0;
             // value2 is the hash value of all field member`s hash value
-            uint32_t value2;
-        } components;
+            uint32_t value1;
+        };
         uint64_t value;
     };
 
-    constexpr auto operator<=>(type_hash_t const& lhs, type_hash_t const& rhs) noexcept
+    constexpr std::strong_ordering operator<=>(type_hash_t const& lhs, type_hash_t const& rhs) noexcept
     {
         return lhs.value <=> rhs.value;
     }

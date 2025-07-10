@@ -48,11 +48,11 @@ namespace punk
 
         virtual type_info_t const* register_type_info(type_info_t* type_info) override
         {
-            auto const type_name_hash = type_info->hash.components.value1;
+            auto const type_name_hash = type_info->hash.value0;
             scoped_spin_lock_t lock{ type_lock };
             auto const emplace_result = runtime_type_infos.emplace(type_name_hash, type_info);
             return emplace_result.first->second.get();
-            // TODO ... conflict when hash.component.value2 is not the same
+            // TODO ... conflict when hash.value1 is not the same
         }
 
         virtual Lazy<type_info_t const*> async_get_type_info(char const* type_name) const override
@@ -78,7 +78,7 @@ namespace punk
 
         virtual Lazy<type_info_t const*> async_register_type_info(type_info_t* type_info) override
         {
-            auto const type_name_hash = type_info->hash.components.value1;
+            auto const type_name_hash = type_info->hash.value0;
             auto scope = type_lock.coScopedLock();
             auto const emplace_result = runtime_type_infos.emplace(type_name_hash, type_info);
             co_return emplace_result.first->second.get();
@@ -402,7 +402,7 @@ namespace punk
                     auto const index = component_info.index_in_archetype;
                     component_group_info_t component_group
                     {
-                        .hash = archetype->component_types[index]->component_group,
+                        .hash = { archetype->component_types[index]->component_group, 0 },
                         .capacity_in_chunk = 0,
                         .component_indices = { index },
                     };
@@ -418,7 +418,7 @@ namespace punk
             auto [erase_begin, erase_last] = std::ranges::unique(archetype->component_groups,
                 [](component_group_info_t& lhs, component_group_info_t& rhs)
                 {
-                    if(lhs.hash == rhs.hash)
+                    if(lhs.hash <=> rhs.hash == 0)
                     {
                         lhs.component_indices.insert_range(lhs.component_indices.end(), rhs.component_indices);
                         return true;
@@ -438,6 +438,20 @@ namespace punk
                             component_info.index_of_group = group_index;
                             component_info.index_in_group = index++;
                         });
+                    
+                    std::vector<type_hash_t> all_comps_type_hash{};
+                    all_comps_type_hash.reserve(component_group.component_indices.size());
+                    std::transform(component_group.component_indices.begin(), component_group.component_indices.end(),
+                        std::back_inserter(all_comps_type_hash),
+                        [&](uint32_t component_index)
+                        {
+                            assert(component_index < archetype->component_types.size());
+                            auto const* field_info = archetype->component_types[component_index];
+                            assert(field_info);
+                            return field_info->hash;
+                        });
+                    component_group.hash.value1  = hash_memory(
+                        reinterpret_cast<char const*>(all_comps_type_hash.data()), all_comps_type_hash.size() * sizeof(type_hash_t));
                 });
 
             // initialize memory capacity_in_chunk for component_group & offset_in_chunk for component

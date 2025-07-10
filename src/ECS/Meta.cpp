@@ -11,7 +11,7 @@ namespace punk
         type_info->size = create_info.size;
         type_info->alignment = create_info.alignment;
         type_info->name = create_info.type_name;
-        type_info->hash.components.value1 = hash_memory(create_info.type_name, std::strlen(create_info.type_name));
+        type_info->hash.value0 = hash_memory(create_info.type_name, std::strlen(create_info.type_name));
         type_info->vtable = create_info.vtable;
         type_info->fields.resize(create_info.field_count);
         type_info->component_tag = create_info.component_tag;
@@ -54,7 +54,7 @@ namespace punk
 
     uint32_t get_type_name_hash(type_info_t const* type_info)
     {
-        return get_type_hash(type_info).components.value1;
+        return get_type_hash(type_info).value0;
     }
 
     // get field count
@@ -103,7 +103,7 @@ namespace punk
             {
                 return field_info.type->hash;
             });
-        type_info->hash.components.value2 = hash_memory(
+        type_info->hash.value1 = hash_memory(
             reinterpret_cast<char const*>(all_fileds_type_hash.data()), all_fileds_type_hash.size() * sizeof(type_hash_t));
     }
 }

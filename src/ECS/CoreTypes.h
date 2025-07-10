@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ECS/Detail/Meta.h"
 #include "ECS/ECS.h"
 
 namespace punk
@@ -8,9 +9,9 @@ namespace punk
     {
         static constexpr size_t chunke_size = 16 * 1024;
 
-        uint32_t                    archetype_hash;
-        uint32_t                    element_count;
-        uint32_t                    chunk_number;
+        uint32_t                        archetype_hash;
+        uint32_t                        element_count;
+        uint32_t                        chunk_number;
     };
 
     // data index in one chunk
@@ -18,38 +19,38 @@ namespace punk
 
     struct field_info_t
     {
-        type_info_t const*          type;
-        uint32_t                    offset;
+        type_info_t const*              type;
+        uint32_t                        offset;
     };
 
     struct type_info_t
     {
-        uint32_t                    size;
-        uint32_t                    alignment;
-        string                      name;
-        type_hash_t                 hash;
-        type_vtable_t               vtable;
-        vector<field_info_t>        fields;
+        uint32_t                        size;
+        uint32_t                        alignment;
+        string                          name;
+        type_hash_t                     hash;
+        type_vtable_t                   vtable;
+        vector<field_info_t>            fields;
 
         // TODO ... using C++ attributes to manager these two
-        component_tag_t             component_tag;
-        uint32_t                    component_group;
+        component_tag_t                 component_tag;
+        uint32_t                        component_group;
     };
 
     struct component_info_t
     {
-        uint32_t                    index_in_archetype;
-        uint32_t                    index_in_group;
-        uint32_t                    index_of_group;
-        uint32_t                    offset_in_chunk;
+        uint32_t                        index_in_archetype;
+        uint32_t                        index_in_group;
+        uint32_t                        index_of_group;
+        uint32_t                        offset_in_chunk;
     };
 
     struct component_group_info_t
     {
-        uint32_t                    hash;
-        uint32_t                    capacity_in_chunk;
-        uint32_t                    index_in_archetype;
-        vector<uint32_t>            component_indices;      // indices of component in the owner archetype
+        type_hash_t                     hash;
+        uint32_t                        capacity_in_chunk;
+        uint32_t                        index_in_archetype;
+        vector<uint32_t>                component_indices;      // indices of component in the owner archetype
     };
 
     struct archetype_t
