@@ -1,8 +1,5 @@
 #pragma once
 
-#include "ECS/Detail/Entity.h"
-#include "ECS/Detail/ErrorCode.h"
-
 namespace punk
 {
     class store

@@ -12,21 +12,20 @@ namespace punk
     struct alignas(alignof(uint64_t)) entity_compose_type
     {
         uint32_t        handle;
-        uint16_t        tag;
-        uint16_t        version;
+        uint32_t        version;
 
         static constexpr uint64_t invalid_handle_value() noexcept
         {
             return entity_handle_t::invalid_handle_value();
         }
     };
-    using entity_composed_value_t = handle<entity_compose_type, uint64_t>;
+    using entity_composed_handle_t = handle<entity_compose_type, uint64_t>;
 
     // the entity type
     class entity_t final
     {
     private:
-        entity_composed_value_t composed_value_;
+        entity_composed_handle_t composed_value_;
 
     public:
         constexpr entity_t() noexcept = default;
@@ -35,8 +34,8 @@ namespace punk
             : composed_value_(value)
         {
         }
-        constexpr entity_t(entity_handle_t handle_value, uint16_t tag = 0, uint16_t version = 0) noexcept
-            : composed_value_(entity_compose_type{ handle_value.get_value(), tag, version })
+        constexpr entity_t(entity_handle_t handle_value, uint32_t version = 0) noexcept
+            : composed_value_(entity_compose_type{ handle_value.get_value(), version })
         {
         }
         ~entity_t() noexcept = default;
@@ -46,9 +45,9 @@ namespace punk
         entity_t& operator=(entity_t&&) noexcept = default;
 
     public:
-        static constexpr entity_t compose(entity_handle_t handle, uint16_t tag = 0, uint16_t version = 0) noexcept
+        static constexpr entity_t compose(entity_handle_t handle, uint16_t version = 0) noexcept
         {
-            entity_t temp{ handle, tag, version };
+            entity_t temp{ handle, version };
             return temp;
         }
 
@@ -65,7 +64,7 @@ namespace punk
     private:
         static constexpr entity_compose_type invalid_entity_compose() noexcept
         {
-            return { entity_handle_t::invalid_handle_value(), 0, 0 };
+            return { entity_handle_t::invalid_handle_value(), 0 };
         }
 
     public:
@@ -84,12 +83,7 @@ namespace punk
             return entity_handle_t{ composed_value_.get_tag_value().handle };
         }
 
-        constexpr uint16_t get_tag() const noexcept
-        {
-            return composed_value_.get_tag_value().tag;
-        }
-
-        constexpr uint16_t get_version() const noexcept
+        constexpr uint32_t get_version() const noexcept
         {
             return composed_value_.get_tag_value().version;
         }
@@ -104,4 +98,5 @@ namespace punk
             return get_value();
         }
     };
+    PUNK_IMPLEMENT_PRIMATIVE_TYPE(entity_t, punk::entity_t);
 }

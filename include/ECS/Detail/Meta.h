@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Base/Types.h"
-#include "ECS/Detail/Handle.h"
 
 namespace punk
 {

@@ -119,7 +119,7 @@ namespace punk
     template <typename T> requires(std::is_integral_v<T>)
     constexpr T align_up(T value, T alignment)
     {
-        return align_up_with_mask(value, std::bit_ceil(alignment));
+        return align_up_with_mask(value, std::bit_ceil(alignment) - 1);
     }
 
     template <typename T> requires(std::is_integral_v<T>)

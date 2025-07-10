@@ -1,8 +1,6 @@
 #pragma once
 
-#include "ECS/Detail/Meta.h"
 #include "Base/Utils/StaticFor.h"
-#include "ECS/Detail/TypeInfoTraits.h"
 #include "Base/Async/AsyncStaticFor.h"
 
 namespace punk

@@ -4,7 +4,7 @@
 #include "Base/Reflection/TypeTraitsExt.h"
 #include "Base/Reflection/TypeDemangle.h"
 #include "Base/Utils/Hash.h"
-#include "ECS/Detail/Meta.h"
+#include "Base/Math/Math.h"
 #include "Base/Reflection/StaticReflection.h"
 #include "boost/pfr/detail/offset_based_getter.hpp"
 
@@ -14,8 +14,8 @@ namespace punk
     template <typename T>
     struct type_info_traits;
 
-    struct data_component_tag;
-    struct cow_component_tag;
+    struct data_component_tag{};
+    struct cow_component_tag{};
 }
 
 // for primative types
@@ -141,6 +141,11 @@ namespace punk
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(std::u8string, std::u8string);
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(std::u16string, std::u16string);
     PUNK_IMPLEMENT_PRIMATIVE_TYPE(std::u32string, std::u32string);
+    PUNK_IMPLEMENT_PRIMATIVE_TYPE(float2, float2);
+    PUNK_IMPLEMENT_PRIMATIVE_TYPE(float3, float3);
+    PUNK_IMPLEMENT_PRIMATIVE_TYPE(float4, float4);
+    PUNK_IMPLEMENT_PRIMATIVE_TYPE(matrix4x4, matrix4x4);
+    PUNK_IMPLEMENT_PRIMATIVE_TYPE(DirectX::XMVECTOR, vector);
 
     template <typename T, size_t Size>
     struct type_info_traits<std::array<T, Size>> : 

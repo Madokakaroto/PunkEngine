@@ -1,4 +1,3 @@
-#include "ECS/Detail/Entity.h"
 #include "ECS/ECS.h"
 #include "Base/Containers/Hive.h"
 
@@ -13,12 +12,12 @@ namespace punk
     class entity_pool_impl_t : public entity_pool_t
     {
     public:
-        virtual entity_t allocate_entity(uint16_t tag) override
+        virtual entity_t allocate_entity() override
         {
             auto [version_ptr, index] = entities_version_.construct();
             assert(version_ptr);
             auto const version = version_ptr->version++;
-            return entity_t::compose(entity_handle_t{ static_cast<uint32_t>(index) }, tag, version);
+            return entity_t::compose(entity_handle_t{ static_cast<uint32_t>(index) }, version);
         }
 
         virtual void deallocate_entity(entity_t entity) override
@@ -45,7 +44,7 @@ namespace punk
         virtual entity_t restore_entity(entity_handle_t handle) override
         {
             auto [version_ptr, _] = entities_version_.construct_at(handle.get_value(), false);
-            return entity_t::compose(handle, 0, version_ptr->version);
+            return entity_t::compose(handle, version_ptr->version);
         }
 
     private:

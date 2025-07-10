@@ -13,64 +13,64 @@ namespace punk
         {
             { Tag::invalue_handle_value() } -> std::same_as<UnderlyingType>;
         };
+
+        template <typename Tag, std::integral T>
+        struct handle_base
+        {
+        public:
+            using underlying_type = T;
+            using tag_type = Tag;
+
+        public:
+            underlying_type value_;
+
+            constexpr explicit handle_base(underlying_type value) noexcept
+                : value_(value)
+            {
+            }
+            ~handle_base() noexcept = default;
+            handle_base(handle_base const&) noexcept = default;
+            handle_base& operator=(handle_base const&) noexcept = default;
+            handle_base(handle_base&&) noexcept = default;
+            handle_base& operator=(handle_base&&) noexcept = default;
+
+        public:
+            friend constexpr auto operator <=> (handle_base const& lhs, handle_base const& rhs) noexcept
+            {
+                return lhs.value_ <=> rhs.value_;
+            }
+
+            static constexpr underlying_type invalid_handle_value() noexcept
+            {
+                if constexpr(detail::has_invalue_handle_value<tag_type, underlying_type>)
+                {
+                    return tag_type::invalue_handle_value();
+                }
+                return (std::numeric_limits<underlying_type>::max)();
+            }
+
+            explicit constexpr operator underlying_type() const noexcept
+            {
+                return value_;
+            }
+
+            constexpr underlying_type get_value() const noexcept
+            {
+                return value_;
+            }
+
+            constexpr bool is_valid() const noexcept
+            {
+                return value_ != invalid_handle_value();
+            }
+        };
     }
 
     template <typename Tag, std::integral T>
-    struct handle_base
+    struct handle : detail::handle_base<Tag, T>
     {
     public:
-        using underlying_type = T;
-        using tag_type = Tag;
-
-    public:
-        underlying_type value_;
-
-        constexpr explicit handle_base(underlying_type value) noexcept
-            : value_(value)
-        {
-        }
-        ~handle_base() noexcept = default;
-        handle_base(handle_base const&) noexcept = default;
-        handle_base& operator=(handle_base const&) noexcept = default;
-        handle_base(handle_base&&) noexcept = default;
-        handle_base& operator=(handle_base&&) noexcept = default;
-
-    public:
-        friend constexpr auto operator <=> (handle_base const& lhs, handle_base const& rhs) noexcept
-        {
-            return lhs.value_ <=> rhs.value_;
-        }
-
-        static constexpr underlying_type invalid_handle_value() noexcept
-        {
-            if constexpr(detail::has_invalue_handle_value<tag_type, underlying_type>)
-            {
-                return tag_type::invalue_handle_value();
-            }
-            return (std::numeric_limits<underlying_type>::max)();
-        }
-
-        explicit constexpr operator underlying_type() const noexcept
-        {
-            return value_;
-        }
-
-        constexpr underlying_type get_value() const noexcept
-        {
-            return value_;
-        }
-
-        constexpr bool is_valid() const noexcept
-        {
-            return value_ != invalid_handle_value();
-        }
-    };
-
-    template <typename Tag, std::integral T>
-    struct handle : handle_base<Tag, T>
-    {
-    public:
-        using base_type = handle_base<Tag, T>;
+        using base_type = detail::handle_base<Tag, T>;
         using underlying_type = typename base_type::underlying_type;
         using tag_type = typename base_type::tag_type;
 
@@ -93,10 +93,10 @@ namespace punk
 
     template <typename Tag, std::integral T>
         requires(sizeof(Tag) == sizeof(T) && std::is_pod_v<Tag>)
-    struct handle<Tag, T> : handle_base<Tag, T>
+    struct handle<Tag, T> : detail::handle_base<Tag, T>
     {
     public:
-        using base_type = handle_base<Tag, T>;
+        using base_type = detail::handle_base<Tag, T>;
         using underlying_type = typename base_type::underlying_type;
         using tag_type = typename base_type::tag_type;
 
@@ -124,6 +124,20 @@ namespace punk
         constexpr tag_type get_tag_value() const noexcept
         {
             return *std::launder(reinterpret_cast<tag_type const*>(&this->value_));
+        }
+    };
+
+    // reflection
+    template <typename Tag, std::integral T>
+    struct type_info_traits<handle<Tag, T>> : primative_type_info_traits<handle<Tag, T>>
+    {
+        using type = typename primative_type_info_traits<handle<Tag, T>>::type;
+
+        static std::string get_type_name()
+        {
+            using tag_type_info = type_info_traits<Tag>;
+            using integral_type_info = type_info_traits<T>;
+            return std::format("punk::handle<{}, {}>", tag_type_info::get_type_name(), integral_type_info::get_type_name());
         }
     };
 }

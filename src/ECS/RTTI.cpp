@@ -328,7 +328,7 @@ namespace punk
             {
                 new archetype_t{}, [this](archetype_t* archetype) { destroy_archetype(archetype); }
             };
-            archetype->hash = 0;
+            archetype->hash = hash;
             archetype->registered = false;
             archetype->component_types.reserve(component_count);
             archetype->component_infos.reserve(component_count);
@@ -357,6 +357,7 @@ namespace punk
             auto [weak_archetype, result] = all_archetypes.emplace(archetype->hash, archetype);
             if(result)
             {
+                archetype->registered = true;
                 return archetype;
             }
             auto result_archetype = weak_archetype->second.lock();
@@ -401,7 +402,7 @@ namespace punk
                     auto const index = component_info.index_in_archetype;
                     component_group_info_t component_group
                     {
-                        .hash = archetype->component_types[index]->hash.components.value1,
+                        .hash = archetype->component_types[index]->component_group,
                         .capacity_in_chunk = 0,
                         .component_indices = { index },
                     };
@@ -472,13 +473,15 @@ namespace punk
                 {
                     capacity--;
                     chunk_size = calculate_chunk_size_and_offsets(archetype, component_group, capacity, offsets);
-                } while (data_block_size <= chunk_size);
+                } while (data_block_size < chunk_size);
 
                 // 4. now we have got the capacity result and offsets of all components, update into the archetype/component info
                 component_group.capacity_in_chunk = capacity;
                 for(uint32_t loop = 0; loop < offsets.size(); ++loop)
                 {
-                    archetype->component_infos[loop].offset_in_chunk = offsets[loop];
+                    auto const component_index = component_group.component_indices[loop];
+                    assert(component_index < archetype->component_types.size());
+                    archetype->component_infos[component_index].offset_in_chunk = offsets[loop];
                 }
             }
         }

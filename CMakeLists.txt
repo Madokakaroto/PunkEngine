@@ -50,6 +50,7 @@ target_include_directories(PunkEngine PRIVATE
     ${DEPENDENCIES_DIRECTORY}/boost/preprocessor/include
     ${DEPENDENCIES_DIRECTORY}/asio/asio/include
     ${DEPENDENCIES_DIRECTORY}/async_simple
+    ${DEPENDENCIES_DIRECTORY}/DirectXMath/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(PunkEngine -lc++ -lstdc++)

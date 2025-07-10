@@ -1,7 +1,6 @@
 #pragma once
 
-#include "ECS/Detail/Meta.h"
-#include "ECS/Detail/Handle.h"
+#include "ECS/ECS.h"
 
 namespace punk
 {

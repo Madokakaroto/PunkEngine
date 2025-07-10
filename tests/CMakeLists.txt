@@ -15,6 +15,7 @@ target_include_directories(PunkEngineTest PRIVATE
     ${DEPENDENCIES_DIRECTORY}/boost/preprocessor/include
     ${DEPENDENCIES_DIRECTORY}/asio/asio/include
     ${DEPENDENCIES_DIRECTORY}/async_simple
+    ${DEPENDENCIES_DIRECTORY}/DirectXMath/Inc
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
 )

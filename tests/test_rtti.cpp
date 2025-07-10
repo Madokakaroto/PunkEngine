@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "Base/Reflection/StaticReflection.h"
 #include "ECS/ECS.h"
-
 #include "ECS/CoreTypes.h"
 
 class foo {};
