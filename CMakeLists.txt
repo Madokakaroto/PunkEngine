@@ -52,6 +52,7 @@ target_include_directories(PunkEngine PRIVATE
     ${DEPENDENCIES_DIRECTORY}/async_simple
     ${DEPENDENCIES_DIRECTORY}/DirectXMath/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(PunkEngine -lc++ -lstdc++)
 

@@ -1,5 +1,4 @@
-#include "ECS/ECS.h"
-#include "CoreTypes.h"
+#include "ECS/CoreTypes.h"
 #include "Base/Utils/Hash.h"
 
 namespace punk

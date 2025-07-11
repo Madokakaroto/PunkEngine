@@ -1,68 +1,23 @@
-#include "ECS/ECS.h"
-#include "CoreTypes.h"
+#pragma once
+
+#include "ECS/Archetype/ArchetypeInstance.h"
 #include "Base/Containers/Hive.h"
 
 namespace punk
 {
-    //struct chunk_node_t
-    //{
-    //    chunk_t*      chunk;
-    //    chunk_node_t* next;
-    //    chunk_node_t* prev;
-    //    
-    //    chunk_node_t(chunk_t* chunck)
-    //        : chunk(chunck)
-    //        , next(nullptr)
-    //        , prev(nullptr)
-    //    {}
-    //    chunk_node_t() = default;
-    //    ~chunk_node_t() = default;
-    //};
-
-    class archetype_instance
-    {
-    public:
-        static constexpr uint32_t non_archetype_index() { return (std::numeric_limits<uint32_t>::max)(); }
-
-    private:
-        uint32_t                    index_;
-        archetype_ptr               archetype_;
-        //std::vector<chunk_node_t>   chunk_nodes_;
-
-    public:
-        explicit archetype_instance(archetype_ptr archetype)
-            : index_(non_archetype_index())
-            , archetype_(std::move(archetype)) {}
-        archetype_instance() 
-            : archetype_instance(nullptr)
-        {}
-        ~archetype_instance() = default;
-        archetype_instance(archetype_instance const&) = default;
-        archetype_instance& operator=(archetype_instance const&) = default;
-        archetype_instance(archetype_instance&&) = default;
-        archetype_instance& operator=(archetype_instance&&) = default;
-
-    public:
-        uint32_t get_index() const noexcept { return index_; }
-        void set_index(uint32_t index) noexcept { index_ = index; }
-        uint32_t get_hash() const noexcept { return archetype_ ? archetype_->hash : 0; }
-        bool is_non_archetype() const noexcept { return get_index() == 0; }
-        archetype_ptr const& get_archetype() const { return archetype_; }
-    };
-
-    class archetype_instance_manager final
+    class archetype_instance_registry final
     {
     private:
         hive<archetype_instance>                archetype_instances_;
         std::unordered_map<uint32_t, uint32_t>  archetype_hash_to_instance_;
 
     public:
-        archetype_instance_manager() = default;
-        ~archetype_instance_manager() = default;
-        archetype_instance_manager(archetype_instance_manager const&) = delete;
-        archetype_instance_manager& operator=(archetype_instance_manager const&) = delete;
-        archetype_instance_manager(archetype_instance_manager&&) = default;
-        archetype_instance_manager& operator=(archetype_instance_manager&&) = default;
+        archetype_instance_registry() = default;
+        ~archetype_instance_registry() = default;
+        archetype_instance_registry(archetype_instance_registry const&) = delete;
+        archetype_instance_registry& operator=(archetype_instance_registry const&) = delete;
+        archetype_instance_registry(archetype_instance_registry&&) = default;
+        archetype_instance_registry& operator=(archetype_instance_registry&&) = default;
 
         uint32_t attach_archetype(archetype_ptr const& archetype)
         {
@@ -126,7 +81,7 @@ namespace punk
 
         archetype_instance* get_archetype_instance(archetype_ptr const& archetype)
         {
-            return const_cast<archetype_instance*>(const_cast<archetype_instance_manager const*>(this)->get_archetype_instance(archetype));
+            return const_cast<archetype_instance*>(const_cast<archetype_instance_registry const*>(this)->get_archetype_instance(archetype));
         }
 
         archetype_instance const* get_archetype_instance_by_index(uint32_t index) const
@@ -140,7 +95,7 @@ namespace punk
 
         archetype_instance* get_archetype_instance_by_index(uint32_t index)
         {
-            return const_cast<archetype_instance*>(const_cast<archetype_instance_manager const*>(this)->get_archetype_instance_by_index(index));
+            return const_cast<archetype_instance*>(const_cast<archetype_instance_registry const*>(this)->get_archetype_instance_by_index(index));
         }
 
         archetype_instance const* get_archetype_instance_by_hash(uint32_t hash) const
@@ -155,8 +110,7 @@ namespace punk
 
         archetype_instance* get_archetype_instance_by_hash(uint32_t hash)
         {
-            return const_cast<archetype_instance*>(const_cast<archetype_instance_manager const*>(this)->get_archetype_instance_by_hash(hash));
+            return const_cast<archetype_instance*>(const_cast<archetype_instance_registry const*>(this)->get_archetype_instance_by_hash(hash));
         }
     };
 }
-

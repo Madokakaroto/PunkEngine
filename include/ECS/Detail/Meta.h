@@ -131,3 +131,15 @@ namespace punk
     // get the offset of the field
     uint32_t get_field_offset(field_info_t* field_info);
 }
+
+namespace std
+{
+    template <>
+    struct hash<punk::type_hash_t>
+    {
+        size_t operator()(punk::type_hash_t const& hash) const noexcept
+        {
+            return hash.value;
+        }
+    };
+}
