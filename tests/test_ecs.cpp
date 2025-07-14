@@ -61,7 +61,7 @@ TEST(ECS, DummyTest)
 
     auto archetype_ptr = archetype_system->get_or_create_archetype
     <
-        name_component_t,
+        name_component_t, 
         transform_component_t,
         aabb_component_t,
         hierarchy_component_t

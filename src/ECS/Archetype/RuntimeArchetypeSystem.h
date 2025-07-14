@@ -40,6 +40,6 @@ namespace punk
         void unregister_archetype(archetype_t* archetype);
         void initialize_archetype(archetype_t* archetype, type_info_t const** component_types, size_t count);
         void search_chunck_offset_and_capacity(archetype_t* archetype);
-        uint32_t calculate_chunk_size_and_offsets(archetype_t* archetype, component_group_info_t const& component_group, uint32_t capacity, std::vector<uint32_t>& offsets);
+        uint32_t calculate_chunk_size_and_offsets(archetype_t* archetype, uint32_t capacity, std::vector<uint32_t>& offsets);
     };
 }

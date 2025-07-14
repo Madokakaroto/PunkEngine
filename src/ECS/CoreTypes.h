@@ -39,26 +39,16 @@ namespace punk
     struct component_info_t
     {
         uint32_t                        index_in_archetype;
-        uint32_t                        index_in_group;
-        uint32_t                        index_of_group;
         uint32_t                        offset_in_chunk;
-    };
-
-    struct component_group_info_t
-    {
-        type_hash_t                     hash;
-        uint32_t                        capacity_in_chunk;
-        uint32_t                        index_in_archetype;
-        vector<uint32_t>                component_indices;      // indices of component in the owner archetype
     };
 
     struct archetype_t
     {
         uint32_t                        hash;
+        uint16_t                        capacity_in_chunk;
         bool                            registered;
         vector<type_info_t const*>      component_types;
         vector<component_info_t>        component_infos;
-        vector<component_group_info_t>  component_groups;
     };
 
     using archetype_delete_delegate_t = std::function<void(archetype_t*)>;

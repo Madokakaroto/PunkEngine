@@ -11,4 +11,4 @@
 #include "ECS/Detail/Entity.h"
 #include "ECS/Detail/EntityPool.h"
 #include "ECS/Detail/RTTI.h"
-#include "ECS/Detail/Store.h"
+#include "ECS/Detail/DataStorage.h"

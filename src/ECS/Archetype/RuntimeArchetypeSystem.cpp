@@ -145,7 +145,7 @@ namespace punk
     archetype_ptr runtime_archetype_system_impl::archetype_include_components_impl(archetype_ptr const& archetype, 
         size_t component_count, type_info_t const** component_types, uint32_t* include_orders)
     {
-        auto const current_archetype_component_count = archetype->component_types.size();
+        auto const current_archetype_component_count = archetype->component_infos.size();
         auto const new_archetype_components_count = current_archetype_component_count + component_count;
         auto* component_infos_ptr = PUNK_ALLOCA(type_info_t const*, new_archetype_components_count);
         std::ranges::subrange merge_comp_type_infos
@@ -203,7 +203,7 @@ namespace punk
 
     archetype_ptr runtime_archetype_system_impl::archetype_exclude_components_impl(archetype_ptr const& archetype,type_info_t const** component_types, size_t component_count)
     {
-        auto const components_count = archetype->component_types.size();
+        auto const components_count = archetype->component_infos.size();
         auto* diff_comp_begin = PUNK_ALLOCA(type_info_t const*, components_count);
         std::ranges::subrange difference_type_infos{ diff_comp_begin, diff_comp_begin + components_count };
         std::ranges::subrange subtract_type_infos{ component_types, component_types + component_count };
@@ -227,10 +227,10 @@ namespace punk
             new archetype_t{}, [this](archetype_t* archetype) { destroy_archetype(archetype); }
         };
         archetype->hash = hash;
+        archetype->capacity_in_chunk = 0;
         archetype->registered = false;
         archetype->component_types.reserve(component_count);
         archetype->component_infos.reserve(component_count);
-        archetype->component_groups.reserve(component_count);
         return archetype;
     }
 
@@ -275,70 +275,23 @@ namespace punk
 
     void runtime_archetype_system_impl::initialize_archetype(archetype_t* archetype, type_info_t const** component_types, size_t count)
     {
-        assert(archetype->component_types.capacity() == count);
+        assert(archetype->component_infos.capacity() == count);
+
+        // copy to component types
         std::ranges::copy(component_types, component_types + count, std::back_inserter(archetype->component_types));
 
+        // create component infos
         std::ranges::transform(archetype->component_types, std::back_inserter(archetype->component_infos),
-            [index{ 0u }](auto const*) mutable
+            [index{ 0u }](auto const* comp_type_info) mutable
             {
                 return component_info_t
                 {
                     .index_in_archetype = index++,
-                    .index_in_group = invalid_index_value(),
-                    .index_of_group = invalid_index_value(),
                     .offset_in_chunk = 0,
                 };
             });
 
-        std::ranges::transform(archetype->component_infos, std::back_inserter(archetype->component_groups),
-            [archetype](auto const& component_info)
-            {
-                auto const index = component_info.index_in_archetype;
-                component_group_info_t component_group
-                {
-                    .hash = { archetype->component_types[index]->component_group, 0 },
-                    .capacity_in_chunk = 0,
-                    .component_indices = { index },
-                };
-                return component_group;
-            });
-        std::ranges::stable_sort(archetype->component_groups,
-            [](auto const& lhs, auto const& rhs)
-            {
-                return lhs.hash < rhs.hash;
-            });
-        auto [erase_begin, erase_last] = std::ranges::unique(archetype->component_groups,
-            [](component_group_info_t& lhs, component_group_info_t& rhs)
-            {
-                if(lhs.hash <=> rhs.hash == 0)
-                {
-                    lhs.component_indices.insert_range(lhs.component_indices.end(), rhs.component_indices);
-                    return true;
-                }
-                return false;
-            });
-        archetype->component_groups.erase(erase_begin, erase_last);
-        std::ranges::for_each(archetype->component_groups,
-            [index{ 0u }, archetype](auto& component_group) mutable
-            {
-                component_group.index_in_archetype = index++;
-                std::vector<type_hash_t> all_comps_type_hash{};
-                all_comps_type_hash.reserve(component_group.component_indices.size());
-                std::ranges::for_each(component_group.component_indices,
-                    [index{ 0u }, group_index = component_group.index_in_archetype, archetype, &all_comps_type_hash](uint32_t component_index) mutable
-                    {
-                        auto& component_info = archetype->component_infos[component_index];
-                        component_info.index_of_group = group_index;
-                        component_info.index_in_group = index++;
-
-                        auto const* field_info = archetype->component_types[component_index];
-                        all_comps_type_hash.emplace_back(field_info->hash);
-                    });
-                
-                component_group.hash.value1  = hash_memory(
-                    reinterpret_cast<char const*>(all_comps_type_hash.data()), all_comps_type_hash.size() * sizeof(type_hash_t));
-            });
-
+        // calculate offsets for all components
         search_chunck_offset_and_capacity(archetype);
     }
 
@@ -346,54 +299,44 @@ namespace punk
     {
         assert(archetype);
 
-        for(auto& component_group : archetype->component_groups)
+        auto const all_comp_size = std::reduce(
+            archetype->component_types.begin(),
+            archetype->component_types.end(),
+            0u, [archetype](uint32_t acc, auto const* component_type)
+            {
+                assert(component_type);
+                return acc + component_type->size;
+            });
+
+        constexpr uint32_t data_block_size = chunk_t::chunke_size - sizeof(chunk_t);
+        uint32_t capacity = data_block_size / all_comp_size + 1;
+
+        uint32_t chunk_size;
+        std::vector<uint32_t> offsets(archetype->component_infos.size(), 0u);
+        do
         {
-            auto const all_comp_size = std::reduce(
-                component_group.component_indices.begin(),
-                component_group.component_indices.end(),
-                0u, [archetype](uint32_t acc, uint32_t component_index)
-                {
-                    assert(component_index < archetype->component_types.size());
-                    auto const* component_type = archetype->component_types[component_index];
-                    return acc + component_type->size;
-                });
+            capacity--;
+            chunk_size = calculate_chunk_size_and_offsets(archetype, capacity, offsets);
+        } while (data_block_size < chunk_size);
 
-            constexpr uint32_t data_block_size = chunk_t::chunke_size - sizeof(chunk_t);
-            uint32_t capacity = data_block_size / all_comp_size + 1;
-
-            uint32_t chunk_size;
-            std::vector<uint32_t> offsets(component_group.component_indices.size(), 0u);
-            do
-            {
-                capacity--;
-                chunk_size = calculate_chunk_size_and_offsets(archetype, component_group, capacity, offsets);
-            } while (data_block_size < chunk_size);
-
-            component_group.capacity_in_chunk = capacity;
-            for(uint32_t loop = 0; loop < offsets.size(); ++loop)
-            {
-                auto const component_index = component_group.component_indices[loop];
-                assert(component_index < archetype->component_types.size());
-                archetype->component_infos[component_index].offset_in_chunk = offsets[loop];
-            }
+        archetype->capacity_in_chunk = capacity;
+        for(uint32_t loop = 0; loop < offsets.size(); ++loop)
+        {
+            archetype->component_infos[loop].offset_in_chunk = offsets[loop];
         }
     }
 
-    uint32_t runtime_archetype_system_impl::calculate_chunk_size_and_offsets(archetype_t* archetype, component_group_info_t const& component_group, uint32_t capacity, std::vector<uint32_t>& offsets)
+    uint32_t runtime_archetype_system_impl::calculate_chunk_size_and_offsets(archetype_t* archetype, uint32_t capacity, std::vector<uint32_t>& offsets)
     {
         assert(archetype);
         uint32_t size = sizeof(chunk_t);
 
         offsets.clear();
-        std::ranges::transform(component_group.component_indices, std::back_inserter(offsets),
-            [archetype, &size, capacity](auto const& component_index)
+        std::ranges::transform(archetype->component_types, std::back_inserter(offsets),
+            [&size, capacity](auto const* component_type)
             {
-                auto const* component_type = archetype->component_types[component_index];
-
                 auto const offset = align_up(size, component_type->alignment);
-
                 size += component_type->size * capacity;
-
                 return offset;
             });
 
