@@ -43,13 +43,12 @@ namespace punk
 
     public:
         explicit hive_group(size_t element_count, size_t first_global_index)
-            : storage_(element_count)
+            : storage_()
             , storage_bits_(element_count, false)
             , first_available_index_(0)
             , available_element_count_(element_count)
             , first_global_index_(first_global_index)
         {
-            init(element_count);
         }
 
         pointer get(size_t index)
@@ -59,8 +58,8 @@ namespace punk
 
         const_pointer get(size_t index) const
         {
-            assert(index < storage_.size());
-            if(index < storage_.size() && test(index))
+            assert(index < storage_bits_.size());
+            if(index < storage_bits_.size() && test(index))
             {
                 return get_ptr_as<value_type>(index);
             }
@@ -74,7 +73,7 @@ namespace punk
 
         size_t capacity() const noexcept
         {
-            return storage_.size();
+            return storage_bits_.size();
         }
 
         bool test(size_t index) const
@@ -113,6 +112,11 @@ namespace punk
                 return { nullptr, invalid_index_value() };
             }
 
+            if(storage_.empty())
+            {
+                allocate_group_memory(storage_bits_.size());
+            }
+
             auto const index = first_available_index_;
             auto value_ptr = construct_at_impl(first_available_index_, std::forward<Args>(args)...);
             return { value_ptr, index };
@@ -142,6 +146,11 @@ namespace punk
                     new (value_ptr) value_type{ std::forward<Args>(args)... };
                 }
                 return { value_ptr, true };
+            }
+
+            if(storage_.empty())
+            {
+                allocate_group_memory(storage_bits_.size());
             }
 
             auto value_ptr = construct_at_impl(index, std::forward<Args>(args)...);
@@ -183,7 +192,10 @@ namespace punk
             mark_destroyed(space_index);
             first_available_index_ = space_index;
             available_element_count_++;
-            assert(available_element_count_ < capacity());
+            if(available_element_count_ == capacity())
+            {
+                free_group_memory();
+            }
         }
 
         void destruct(size_t pos) noexcept
@@ -197,8 +209,15 @@ namespace punk
         }
 
     private:
-        void init(size_t element_count)
+        void free_group_memory()
         {
+            storage_.clear();
+            storage_.shrink_to_fit();
+        }
+
+        void allocate_group_memory(size_t element_count)
+        {
+            storage_.resize(storage_bits_.size());
             for(uint16_t loop = 0; loop < element_count; ++loop)
             {
                 storage_[loop].next_available_index = loop + 1;
@@ -206,6 +225,7 @@ namespace punk
             }
             storage_[0].prev_available_index = invalid_short_index_value();
             storage_[element_count - 1].next_available_index = invalid_short_index_value();
+            first_available_index_ = 0;
         }
 
         uint8_t* get_ptr(size_t index)

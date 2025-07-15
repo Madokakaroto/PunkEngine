@@ -3,7 +3,7 @@
 
 namespace punk
 {
-    class runtime_type_system_impl final : public runtime_type_system
+    class runtime_type_system_impl final : public runtime_type_registry_t
     {
     public:
         using spin_lock_t = async_simple::coro::SpinLock;

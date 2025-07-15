@@ -9,7 +9,7 @@ namespace punk
     using Lazy = async_simple::coro::Lazy<T>;
 
     // runtime type system manages all runtime information about types, components, component groups & archetypes
-    class runtime_type_system
+    class runtime_type_registry_t
     {
     public:
         struct type_info_deleter
@@ -22,15 +22,15 @@ namespace punk
         using type_info_ptr = std::unique_ptr<type_info_t, type_info_deleter>;
 
     public:
-        runtime_type_system() = default;
-        runtime_type_system(runtime_type_system const&) = delete;
-        runtime_type_system& operator=(runtime_type_system const&) = delete;
-        runtime_type_system(runtime_type_system&&) = delete;
-        runtime_type_system& operator=(runtime_type_system&&) = delete;
-        virtual ~runtime_type_system() = default;
+        runtime_type_registry_t() = default;
+        runtime_type_registry_t(runtime_type_registry_t const&) = delete;
+        runtime_type_registry_t& operator=(runtime_type_registry_t const&) = delete;
+        runtime_type_registry_t(runtime_type_registry_t&&) = delete;
+        runtime_type_registry_t& operator=(runtime_type_registry_t&&) = delete;
+        virtual ~runtime_type_registry_t() = default;
 
         // factory
-        static runtime_type_system* create_instance();
+        static runtime_type_registry_t* create_instance();
 
     public:
         // get type_info
@@ -187,21 +187,21 @@ namespace punk
         (reflectable<Args> && ...);
     };
 
-    class runtime_archetype_system
+    class archetype_registry_t
     {
     protected:
-        explicit runtime_archetype_system(runtime_type_system* runtime_type_system)
-            : runtime_type_system_(runtime_type_system) {}
+        explicit archetype_registry_t(runtime_type_registry_t* runtime_type_registry)
+            : runtime_type_registry_(runtime_type_registry) {}
 
     public:
-        runtime_archetype_system(runtime_archetype_system const&) = delete;
-        runtime_archetype_system& operator=(runtime_archetype_system const&) = delete;
-        runtime_archetype_system(runtime_archetype_system&&) = delete;
-        runtime_archetype_system& operator=(runtime_archetype_system&&) = delete;
-        virtual ~runtime_archetype_system() = default;
+        archetype_registry_t(archetype_registry_t const&) = delete;
+        archetype_registry_t& operator=(archetype_registry_t const&) = delete;
+        archetype_registry_t(archetype_registry_t&&) = delete;
+        archetype_registry_t& operator=(archetype_registry_t&&) = delete;
+        virtual ~archetype_registry_t() = default;
 
         // factory
-        static runtime_archetype_system* create_instance(runtime_type_system* rtt_system);
+        static archetype_registry_t* create_instance(runtime_type_registry_t* rtt_system);
 
     public:
         virtual archetype_ptr get_archetype(uint32_t hash) = 0;
@@ -215,11 +215,11 @@ namespace punk
         template <typename ... Args> requires atleast_one_component_types<Args...>
         archetype_ptr get_or_create_archetype()
         {
-            assert(runtime_type_system_);
+            assert(runtime_type_registry_);
 
             // collect all runtime type information
             constexpr size_t count = sizeof...(Args);
-            std::array<type_info_t const*, count> type_infos = { runtime_type_system_->get_or_create_type_info<Args>() ... };
+            std::array<type_info_t const*, count> type_infos = { runtime_type_registry_->get_or_create_type_info<Args>() ... };
 
             // sort types by hash
             std::stable_sort(type_infos.begin(), type_infos.end(),
@@ -233,13 +233,13 @@ namespace punk
         template <typename ... Args> requires atleast_one_component_types<Args...>
         auto archetype_include_components(archetype_ptr const& archetype) -> std::pair<archetype_ptr, std::array<size_t, sizeof...(Args)>>
         {
-            assert(runtime_type_system_);
+            assert(runtime_type_registry_);
             constexpr size_t component_count = sizeof...(Args);
 
             // prepare component types
             std::array<type_info_t const*, component_count> component_types
             {
-                (runtime_type_system_->get_or_create_type_info<Args>(), ...)
+                (runtime_type_registry_->get_or_create_type_info<Args>(), ...)
             };
 
             // prepare order
@@ -255,11 +255,11 @@ namespace punk
         template <typename ... Args> requires atleast_one_component_types<Args...>
         archetype_ptr archetype_exclude_components(archetype_ptr const& archetype)
         {
-            assert(runtime_type_system_);
+            assert(runtime_type_registry_);
             constexpr size_t component_count = sizeof...(Args);
             std::array<type_info_t const*, component_count> component_types
             {
-                (runtime_type_system_->get_or_create_type_info<Args>(), ...)
+                (runtime_type_registry_->get_or_create_type_info<Args>(), ...)
             };
             return archetype_exclude_components(archetype, component_types.data(), component_count);
         }
@@ -271,6 +271,6 @@ namespace punk
         virtual archetype_ptr archetype_exclude_components_impl(archetype_ptr const& archetype, type_info_t const** component_types, size_t component_count) = 0;
 
     protected:
-        runtime_type_system* runtime_type_system_;
+        runtime_type_registry_t* runtime_type_registry_;
     };
 }

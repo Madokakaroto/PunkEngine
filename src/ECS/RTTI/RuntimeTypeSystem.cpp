@@ -2,7 +2,7 @@
 
 namespace punk
 {
-    runtime_type_system* runtime_type_system::create_instance()
+    runtime_type_registry_t* runtime_type_registry_t::create_instance()
     {
         return new runtime_type_system_impl{};
     }

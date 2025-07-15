@@ -50,13 +50,13 @@ struct name_component_t
 TEST(ECS, DummyTest) 
 {
     EXPECT_TRUE(true);
-    std::unique_ptr<punk::runtime_type_system> rtts
+    std::unique_ptr<punk::runtime_type_registry_t> rtts
     { 
-        punk::runtime_type_system::create_instance()
+        punk::runtime_type_registry_t::create_instance()
     };
-    std::unique_ptr<punk::runtime_archetype_system> archetype_system
+    std::unique_ptr<punk::archetype_registry_t> archetype_system
     { 
-        punk::runtime_archetype_system::create_instance(rtts.get())
+        punk::archetype_registry_t::create_instance(rtts.get())
     };
 
     auto archetype_ptr = archetype_system->get_or_create_archetype

@@ -83,7 +83,7 @@ TEST(PunkRTTI, Reflection)
     static_assert(std::is_same_v<decltype(type_info_traits_ta::get_field_type<2>()), double>);
     static_assert(std::is_same_v<decltype(type_info_traits_ta::get_field_type<3>()), std::string>);
 
-    auto* rtti = punk::runtime_type_system::create_instance();
+    auto* rtti = punk::runtime_type_registry_t::create_instance();
     auto* test_align_type_info = rtti->get_or_create_type_info<test_align>();
     std::cout << "type name:" << test_align_type_info->name << std::endl;
     std::cout << "type size:" << test_align_type_info->size << std::endl;

@@ -11,7 +11,7 @@
 
 namespace punk
 {
-    class runtime_archetype_system_impl final : public runtime_archetype_system
+    class archetype_registry_impl final : public archetype_registry_t
     {
     public:
         using spin_lock_t = async_simple::coro::SpinLock;
@@ -23,7 +23,7 @@ namespace punk
         spin_lock_t         archetype_lock;
 
     public:
-        explicit runtime_archetype_system_impl(runtime_type_system* runtime_type_system);
+        explicit archetype_registry_impl(runtime_type_registry_t* runtime_type_registry_t);
 
         virtual archetype_ptr get_archetype(uint32_t hash) override;
 

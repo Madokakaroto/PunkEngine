@@ -16,13 +16,13 @@ namespace punk
     class chunk_root_node : public std::enable_shared_from_this<chunk_root_node>
     {
     private:
-        type_hash_t    hash_;
-        chunk_node_t*  chunk_head_;
-        chunk_node_t*  chunk_tail_;
-        chunk_node_t*  free_chunk_head_;
+        uint32_t        archetype_hash_;
+        chunk_node_t*   chunk_head_;
+        chunk_node_t*   chunk_tail_;
+        chunk_node_t*   free_chunk_head_;
 
     public:
-        chunk_root_node(type_hash_t hash, size_t preallocate_chunk_count);
+        chunk_root_node(uint32_t archetype_hash, size_t preallocate_chunk_count);
         ~chunk_root_node();
         chunk_root_node(chunk_root_node const&) = delete;
         chunk_root_node& operator=(chunk_root_node const&) = delete;

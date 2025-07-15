@@ -38,7 +38,6 @@ namespace punk
 
     struct component_info_t
     {
-        uint32_t                        index_in_archetype;
         uint32_t                        offset_in_chunk;
     };
 

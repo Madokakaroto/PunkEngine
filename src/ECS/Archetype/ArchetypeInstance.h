@@ -1,5 +1,6 @@
 #pragma once
 #include "ECS/CoreTypes.h"
+#include "ECS/Chunk/ChunkNode.h"
 
 namespace punk
 {
@@ -11,15 +12,16 @@ namespace punk
     private:
         uint32_t                    index_;
         archetype_ptr               archetype_;
-        //std::vector<chunk_node_t>   chunk_nodes_;
+        chunk_root_node             chunk_nodes_;
 
     public:
         explicit archetype_instance(archetype_ptr archetype)
             : index_(non_archetype_index())
-            , archetype_(std::move(archetype)) {}
-        archetype_instance() 
-            : archetype_instance(nullptr)
-        {}
+            , archetype_(std::move(archetype))
+            , chunk_nodes_(archetype_->hash, 0) // TODO... pre-allocated chunk
+        {
+        }
+
         ~archetype_instance() = default;
         archetype_instance(archetype_instance const&) = default;
         archetype_instance& operator=(archetype_instance const&) = default;

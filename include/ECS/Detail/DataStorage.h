@@ -4,6 +4,8 @@ namespace punk
 {
     class data_storage_t
     {
+    protected:
+        data_storage_t() = default;
     public:
         virtual ~data_storage_t() = default;
         data_storage_t(data_storage_t const&) = delete;
@@ -12,6 +14,9 @@ namespace punk
         data_storage_t& operator=(data_storage_t&&) = delete;
 
     public:
+        static data_storage_t* create_instance(archetype_registry_t* archetype_registry);
 
+    protected:
+        
     };
 }

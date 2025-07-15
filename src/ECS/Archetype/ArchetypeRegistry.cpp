@@ -1,18 +1,18 @@
-#include "ECS/Archetype/RuntimeArchetypeSystem.h"
+#include "ECS/Archetype/ArchetypeRegistry.h"
 
 namespace punk
 {
-    runtime_archetype_system* runtime_archetype_system::create_instance(runtime_type_system* rtt_system)
+    archetype_registry_t* archetype_registry_t::create_instance(runtime_type_registry_t* rtt_system)
     {
         assert(rtt_system);
         if(!rtt_system)
         {
             return nullptr;
         }
-        return new runtime_archetype_system_impl{ rtt_system };
+        return new archetype_registry_impl{ rtt_system };
     }
 
-    archetype_ptr runtime_archetype_system::get_or_create_archetype(type_info_t const** component_types, size_t component_count)
+    archetype_ptr archetype_registry_t::get_or_create_archetype(type_info_t const** component_types, size_t component_count)
     {
         if (component_count == 0)
         {
@@ -52,7 +52,7 @@ namespace punk
         return get_or_create_archetype_impl(component_types, component_count);
     }
 
-    archetype_ptr runtime_archetype_system::archetype_include_components(archetype_ptr const& archetype,
+    archetype_ptr archetype_registry_t::archetype_include_components(archetype_ptr const& archetype,
         size_t component_count, type_info_t const** component_types, uint32_t* include_orders)
     {
         if(!component_types || component_count == 0)
@@ -83,7 +83,7 @@ namespace punk
         return archetype_include_components_impl(archetype, component_count, component_types, include_orders);
     }
 
-    archetype_ptr runtime_archetype_system::archetype_exclude_components(archetype_ptr const& archetype, type_info_t const** component_types, size_t component_count)
+    archetype_ptr archetype_registry_t::archetype_exclude_components(archetype_ptr const& archetype, type_info_t const** component_types, size_t component_count)
     {
         if(!component_types || component_count == 0)
         {
@@ -103,10 +103,10 @@ namespace punk
 
 namespace punk
 {
-    runtime_archetype_system_impl::runtime_archetype_system_impl(runtime_type_system* runtime_type_system)
-        : runtime_archetype_system(runtime_type_system) {}
+    archetype_registry_impl::archetype_registry_impl(runtime_type_registry_t* runtime_type_registry_t)
+        : archetype_registry_t(runtime_type_registry_t) {}
 
-    archetype_ptr runtime_archetype_system_impl::get_archetype(uint32_t hash)
+    archetype_ptr archetype_registry_impl::get_archetype(uint32_t hash)
     {
         scoped_spin_lock_t lock{ archetype_lock };
         auto itr = all_archetypes.find(hash);
@@ -118,7 +118,7 @@ namespace punk
         return nullptr;
     }
 
-    archetype_ptr runtime_archetype_system_impl::get_or_create_archetype_impl(type_info_t const** sorted_component_types, size_t component_count)
+    archetype_ptr archetype_registry_impl::get_or_create_archetype_impl(type_info_t const** sorted_component_types, size_t component_count)
     {
         auto* hash_ptr = PUNK_ALLOCA(uint32_t, component_count);
         std::ranges::subrange all_hash{ hash_ptr, hash_ptr + component_count };
@@ -142,7 +142,7 @@ namespace punk
         return archetype;
     }
 
-    archetype_ptr runtime_archetype_system_impl::archetype_include_components_impl(archetype_ptr const& archetype, 
+    archetype_ptr archetype_registry_impl::archetype_include_components_impl(archetype_ptr const& archetype, 
         size_t component_count, type_info_t const** component_types, uint32_t* include_orders)
     {
         auto const current_archetype_component_count = archetype->component_infos.size();
@@ -201,7 +201,7 @@ namespace punk
         return get_or_create_archetype_impl(merge_comp_type_infos.data(), merge_comp_type_infos.size());
     }
 
-    archetype_ptr runtime_archetype_system_impl::archetype_exclude_components_impl(archetype_ptr const& archetype,type_info_t const** component_types, size_t component_count)
+    archetype_ptr archetype_registry_impl::archetype_exclude_components_impl(archetype_ptr const& archetype,type_info_t const** component_types, size_t component_count)
     {
         auto const components_count = archetype->component_infos.size();
         auto* diff_comp_begin = PUNK_ALLOCA(type_info_t const*, components_count);
@@ -220,7 +220,7 @@ namespace punk
         return get_or_create_archetype_impl(diff_comp_begin, std::ranges::distance(diff_comp_end, diff_comp_begin));
     }
 
-    archetype_ptr runtime_archetype_system_impl::allocate_archetype(uint32_t hash, size_t component_count)
+    archetype_ptr archetype_registry_impl::allocate_archetype(uint32_t hash, size_t component_count)
     {
         archetype_ptr archetype = archetype_ptr
         {
@@ -234,7 +234,7 @@ namespace punk
         return archetype;
     }
 
-    void runtime_archetype_system_impl::destroy_archetype(archetype_t* archetype)
+    void archetype_registry_impl::destroy_archetype(archetype_t* archetype)
     {
         if(archetype)
         {
@@ -248,7 +248,7 @@ namespace punk
         }
     }
 
-    archetype_ptr runtime_archetype_system_impl::register_archetype(archetype_ptr& archetype)
+    archetype_ptr archetype_registry_impl::register_archetype(archetype_ptr& archetype)
     {
         assert(archetype);
         scoped_spin_lock_t lock{ archetype_lock };
@@ -263,7 +263,7 @@ namespace punk
         return result_archetype;
     }
 
-    void runtime_archetype_system_impl::unregister_archetype(archetype_t* archetype)
+    void archetype_registry_impl::unregister_archetype(archetype_t* archetype)
     {
         scoped_spin_lock_t lock{ archetype_lock };
         auto itr = all_archetypes.find(archetype->hash);
@@ -273,29 +273,18 @@ namespace punk
         }
     }
 
-    void runtime_archetype_system_impl::initialize_archetype(archetype_t* archetype, type_info_t const** component_types, size_t count)
+    void archetype_registry_impl::initialize_archetype(archetype_t* archetype, type_info_t const** component_types, size_t count)
     {
         assert(archetype->component_infos.capacity() == count);
 
         // copy to component types
         std::ranges::copy(component_types, component_types + count, std::back_inserter(archetype->component_types));
 
-        // create component infos
-        std::ranges::transform(archetype->component_types, std::back_inserter(archetype->component_infos),
-            [index{ 0u }](auto const* comp_type_info) mutable
-            {
-                return component_info_t
-                {
-                    .index_in_archetype = index++,
-                    .offset_in_chunk = 0,
-                };
-            });
-
         // calculate offsets for all components
         search_chunck_offset_and_capacity(archetype);
     }
 
-    void runtime_archetype_system_impl::search_chunck_offset_and_capacity(archetype_t* archetype)
+    void archetype_registry_impl::search_chunck_offset_and_capacity(archetype_t* archetype)
     {
         assert(archetype);
 
@@ -312,21 +301,22 @@ namespace punk
         uint32_t capacity = data_block_size / all_comp_size + 1;
 
         uint32_t chunk_size;
-        std::vector<uint32_t> offsets(archetype->component_infos.size(), 0u);
+        std::vector<uint32_t> offsets(archetype->component_types.size(), 0u);
         do
         {
             capacity--;
             chunk_size = calculate_chunk_size_and_offsets(archetype, capacity, offsets);
         } while (data_block_size < chunk_size);
 
+        std::ranges::transform(offsets, std::back_inserter(archetype->component_infos),
+            [](uint32_t offset)
+            {
+                return component_info_t{ .offset_in_chunk = offset };
+            });
         archetype->capacity_in_chunk = capacity;
-        for(uint32_t loop = 0; loop < offsets.size(); ++loop)
-        {
-            archetype->component_infos[loop].offset_in_chunk = offsets[loop];
-        }
     }
 
-    uint32_t runtime_archetype_system_impl::calculate_chunk_size_and_offsets(archetype_t* archetype, uint32_t capacity, std::vector<uint32_t>& offsets)
+    uint32_t archetype_registry_impl::calculate_chunk_size_and_offsets(archetype_t* archetype, uint32_t capacity, std::vector<uint32_t>& offsets)
     {
         assert(archetype);
         uint32_t size = sizeof(chunk_t);

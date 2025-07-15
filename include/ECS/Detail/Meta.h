@@ -57,9 +57,6 @@ namespace punk
     // runtime information about an entity component
     struct component_info_t;
 
-    // a group of entity components
-    struct component_group_t;
-
     // TODO ... abi
     using archetype_ptr = std::shared_ptr<archetype_t>;
     using archetype_weak = std::weak_ptr<archetype_t>;

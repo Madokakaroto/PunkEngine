@@ -2,8 +2,8 @@
 
 namespace punk
 {
-    chunk_root_node::chunk_root_node(type_hash_t hash, size_t preallocate_chunk_count)
-        : hash_(hash)
+    chunk_root_node::chunk_root_node(uint32_t archetype_hash, size_t preallocate_chunk_count)
+        : archetype_hash_(archetype_hash)
         , chunk_head_(nullptr)
         , chunk_tail_(nullptr)
         , free_chunk_head_(nullptr)
