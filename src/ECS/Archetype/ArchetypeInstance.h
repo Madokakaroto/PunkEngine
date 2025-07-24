@@ -30,6 +30,7 @@ namespace punk
 
     public:
         uint32_t get_index() const noexcept { return index_; }
+        archetype_instance_handle_t get_handle() const noexcept { return archetype_instance_handle_t{ get_index() }; }
         void set_index(uint32_t index) noexcept { index_ = index; }
         uint32_t get_hash() const noexcept { return archetype_ ? archetype_->hash : 0; }
         bool is_non_archetype() const noexcept { return get_index() == 0; }

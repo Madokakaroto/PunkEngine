@@ -273,4 +273,7 @@ namespace punk
     protected:
         runtime_type_registry_t* runtime_type_registry_;
     };
+
+    // archetype instance handle
+    using archetype_instance_handle_t = handle<archetype_t, uint32_t>;
 }
